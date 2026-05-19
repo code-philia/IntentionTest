@@ -1,0 +1,9 @@
+.focal_file {
+    padding: 10px;
+    width: 49vw;
+    /* height: 100vh; */
+}
+
+.focal_file_code {
+    cursor: pointer;
+}

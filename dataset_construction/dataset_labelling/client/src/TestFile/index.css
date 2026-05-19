@@ -1,0 +1,8 @@
+.test_file {
+    padding: 10px;
+    width: 49vw;
+    position: sticky;
+    position: -webkit-sticky;
+    align-self: flex-start;
+    top: 0;
+}

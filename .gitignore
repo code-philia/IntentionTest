@@ -1,0 +1,12 @@
+data
+data/collected_coverages
+data/raw_data
+.DS_Store
+*/.DS_Store
+.vscode
+__pycache__
+*.pyc
+main/log
+main/temp
+issta26-rebuttal/
+LSPs/jdt-language-server/config_linux

@@ -1,0 +1,17 @@
+/* Split the div into two parts, left and right */
+.App {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.horizontalFlex {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.clickable {
+  cursor: pointer;
+}
