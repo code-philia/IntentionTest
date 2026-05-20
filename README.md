@@ -153,11 +153,11 @@ Common problems and solutions are documented in [FAQ.md](FAQ.md).
 If you find this repository useful, please cite our paper:
 
 ```bibtex
-@article{qi2025intention,
-  title={Intention-driven generation of project-specific test cases},
+@article{qi2026generating,
+  title={Generating Project-Specific Test Cases with Requirement Validation Intention},
   author={Qi, Binhang and Lin, Yun and Weng, Xinyi and Huang, Yuhuan and Liu, Chenyan and Sun, Hailong and Dong, Jin Song},
-  journal={arXiv e-prints},
-  pages={arXiv--2507},
-  year={2025}
+  journal={Proceedings of the ACM on Software Engineering},
+  number={ISSTA},
+  year={2026}
 }
 ```
