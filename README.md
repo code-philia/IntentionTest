@@ -155,7 +155,7 @@ If you find this repository useful, please cite our paper:
 ```bibtex
 @article{qi2026generating,
   title={Generating Project-Specific Test Cases with Requirement Validation Intention},
-  author={Qi, Binhang and Lin, Yun and Weng, Xinyi and Huang, Yuhuan and Liu, Chenyan and Sun, Hailong and Dong, Jin Song},
+  author={Qi, Binhang and Lin, Yun and Weng, Xinyi and Huang, Yuhuan and Liu, Chenyan and Sun, Hailong and Jin, Zhi and Dong, Jin Song},
   journal={Proceedings of the ACM on Software Engineering},
   number={ISSTA},
   year={2026}
