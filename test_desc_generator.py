@@ -43,7 +43,7 @@ def main():
 
 if __name__ == '__main__':
     llm_name = 'gpt-5-mini'
-    project_name_list = [('itext-java', 0), ('yavi', 0), ('jInstagram', 0), ('hutool', 0), ('truth', 0), ('lambda', 0), ('imglib', 0)]
+    project_name_list = [('itext-java', 0), ('hutool', 0), ('yavi', 0), ('truth', 0), ('jInstagram', 0), ('cron-utils', 0), ('imglib', 0), ('ofdrw', 0), ('RocketMQC', 0), ('blade', 0), ('spark', 0), ('awesome-algorithm', 0)]
 
     for project_name, resume_generation_at in project_name_list:
         print(f'\n\n\nProject: {project_name}')
