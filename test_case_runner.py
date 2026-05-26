@@ -262,7 +262,6 @@ class TestCaseRunner():
         focal_file_coverage = ''.join(focal_file_coverage) if focal_file_coverage is not None else None
 
         if os.path.exists(test_case_path):
-            print(f'Removing the test case file at {test_case_path}...')
             os.remove(test_case_path)
 
         return tc_run_log_path, focal_file_coverage, fm_cov_statistic_by_jacoco
@@ -306,7 +305,6 @@ class TestCaseRunner():
                 execute_success = True
                 
         if os.path.exists(test_case_path):
-            print(f'Removing the test case file at {test_case_path}...')
             os.remove(test_case_path)
         return compile_log, test_log, compile_success, execute_success
 

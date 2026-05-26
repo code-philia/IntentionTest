@@ -70,10 +70,10 @@ class JavaCodeParser:
                 target_pair = each_pair
                 break
         if target_pair is None:
-            if ' -> ' in self.code_lines[target_line]:
-                print(f"This is a lambda expression at line {target_line}. Do not support lambda expression.")
-            else:
-                print(f"Cannot find the method/constructor name at {self.current_file_path} line {target_line}.")
+            # if ' -> ' in self.code_lines[target_line]:
+            #     print(f"This is a lambda expression at line {target_line}. Do not support lambda expression.")
+            # else:
+            #     print(f"Cannot find the method/constructor name at {self.current_file_path} line {target_line}.")
             return None, None, None, None
         
         class_name, signature, body, body_end_line = self.organize_info_from_name_body_pair(target_pair)
@@ -365,7 +365,6 @@ class JavaCodeParser:
                 return_type_node = details.get('type_identifier', None)
                 break
         if return_type_node is None:
-            print(f'No return type found for the method at line {method_name_line}.\n{self.code}\n\n')
             return None
         
         return_type_node = (return_type_node.start_point, return_type_node.text.decode('utf8'))

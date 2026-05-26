@@ -32,7 +32,6 @@ class FactDiscriminator:
         # filter according to threshold
         filter_indices = similarities >= threshold
         if sum(filter_indices) == 0:
-            print(f'No facts. max score: {max(similarities)} | threshold: {threshold}')
             return [], []
         
         valid_indices = np.where(similarities >= threshold)[0]
@@ -103,7 +102,6 @@ class FactDiscriminator:
 
         filter_indices = total_scores >= threshold
         if sum(filter_indices) == 0:
-            print(f'No facts. max score: {max(total_scores)} | threshold: {threshold}')
             return [], [], [], []
         
         valid_indices = np.where(total_scores >= threshold)[0]

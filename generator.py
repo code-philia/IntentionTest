@@ -63,7 +63,6 @@ class IntentionTest:
         
         suggestions = self.lsp_server.get_import_stat_fix_suggestions(test_case_path)
         os.remove(test_case_path)
-        print(f'Removing the test case file at {test_case_path}...')
 
         candidate_suggested_import_stats = []
         for uri, edits in suggestions.items():
