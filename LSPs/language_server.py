@@ -377,84 +377,128 @@ class LanguageServer:
             if brace_count == 0:
                 return buffer
         
-    @timeout_decorator(timeout=5, timeout_return=None)
+    def _read_exact(self, num_bytes: int, deadline: float) -> Optional[bytes]:
+        """
+        Read exactly `num_bytes` bytes from the server's stdout, looping until
+        complete.
+
+        The process is launched with bufsize=0, so self.process.stdout is a raw
+        FileIO: a single read() performs one syscall and may return FEWER bytes
+        than requested (capped by the OS pipe buffer, ~64KB) even when more data
+        is on the way. Looping here -- instead of reading once and discarding a
+        short read -- is what keeps the LSP message framing byte-aligned.
+
+        Returns the bytes, or None on EOF / deadline expiry (caller stops).
+        """
+        chunks = []
+        remaining = num_bytes
+        fd = self.process.stdout
+        while remaining > 0:
+            time_left = deadline - time.time()
+            if time_left <= 0:
+                return None
+            readable, _, _ = select.select([fd], [], [], time_left)
+            if not readable:
+                return None  # deadline reached with no more data
+            chunk = fd.read(remaining)
+            if chunk == b"":  # EOF
+                return None
+            if chunk is None:  # non-blocking would-block; shouldn't happen post-select
+                continue
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        return b"".join(chunks)
+
+    def _read_header(self, deadline: float) -> Optional[bytes]:
+        """
+        Read one LSP header block, up to and including the blank-line separator,
+        one byte at a time so we never consume any bytes of the message body.
+        Returns the header bytes, or None on EOF / deadline expiry.
+        """
+        header = bytearray()
+        fd = self.process.stdout
+        while not (header.endswith(b"\r\n\r\n") or header.endswith(b"\n\n")):
+            time_left = deadline - time.time()
+            if time_left <= 0:
+                return None
+            readable, _, _ = select.select([fd], [], [], time_left)
+            if not readable:
+                return None
+            ch = fd.read(1)
+            if ch == b"":  # EOF
+                return None
+            if ch is None:
+                continue
+            header += ch
+        return bytes(header)
+
     def _read_lsp_messages(self, request_id: Optional[int] = None, expect_method: Optional[str] = None, message_num: Optional[int] = None, wait_time: Optional[float] = None):
         """
         Continuously read and parse JSON-RPC messages from the server's stdout.
         Messages are stored in the self.messages list.
-        By specifying the `request_id` or `expect_method`, the function will stop when the message is received.
-        If both parameters are set, the function will stop when either condition is met.
-        """
-        buffer = ""
-        start_time = time.time()
-        while True:
-            # In binary mode, readline() returns bytes
-            line_bytes = self.process.stdout.readline()
-            if not line_bytes:  # Exit if no more output is available
-                break
-            # Decode bytes to string for buffer accumulation and header parsing
-            line = line_bytes.decode('utf-8', errors='replace')
-            buffer += line
-            match = re.search(r"Content-Length: (\d+)", buffer)
-            if match:
-                content_length = int(match.group(1))
-                # Skip all remaining header lines until the blank line separator
-                # (LSP may send additional headers like Content-Type)
-                while True:
-                    header_line = self.process.stdout.readline()
-                    # Blank line separates headers from body (b'\r\n', b'\n', or empty)
-                    if not header_line or header_line.strip() == b'':
-                        break
-                # Read exactly content_length BYTES as specified by LSP protocol
-                # This is critical: Content-Length specifies bytes, not characters
-                message_bytes = self.process.stdout.read(content_length)
-                if message_bytes is None or len(message_bytes) < content_length:
-                    print(f"[WARNING] Failed to read complete message (expected {content_length} bytes, got {len(message_bytes) if message_bytes else 0}), skipping")
-                    buffer = ""
-                    continue
-                # Decode bytes to string for JSON parsing
-                message = message_bytes.decode('utf-8', errors='replace')
-                # Validate we got complete JSON structure
-                if not (message.strip().startswith('{') and message.strip().endswith('}')):
-                    print(f"[WARNING] Message doesn't look like complete JSON, but continuing anyway")
-                    if self.log:
-                        print(f"[DEBUG] Message preview: {message[:100]}...{message[-100:]}")
-                try:
-                    # First attempt: standard JSON parsing
-                    json_message = json.loads(message.strip())
-                except json.JSONDecodeError as e:
-                    # Check if it's an invalid Unicode escape error
-                    if "Invalid \\uXXXX escape" in str(e):
-                        try:
-                            # Fix invalid Unicode escapes and retry
-                            fixed_message = self._fix_invalid_unicode_escapes(message.strip())
-                            json_message = json.loads(fixed_message)
-                            if self.log:
-                                print(f"[WARNING] JSON parsing required Unicode escape fixing at position {e.pos}")
-                        except json.JSONDecodeError as e2:
-                            # Still failed after fixing - provide detailed error
-                            error_context = message[max(0, e.pos-100):min(len(message), e.pos+100)]
-                            raise Exception(
-                                f"JSON Parse Error after fixing Unicode escapes:\n"
-                                f"  Original error: {e}\n"
-                                f"  Second error: {e2}\n"
-                                f"  Position: {e.pos}/{len(message)}\n"
-                                f"  Context: ...{error_context}..."
-                            )
-                    else:
-                        # Different JSON error - provide context and re-raise
-                        error_context = message[max(0, e.pos-100):min(len(message), e.pos+100)] if hasattr(e, 'pos') else message[:200]
-                        raise Exception(f"JSON Parse Error: {e}, Context: ...{error_context}...")
+        By specifying the `request_id` or `expect_method`, the function stops when
+        the matching message is received. Otherwise it returns once `message_num`
+        messages are collected or `wait_time` seconds elapse.
 
-                # Check if message matches criteria
-                if self._is_desired_message(json_message, request_id, expect_method):
-                    return None
-                buffer = ""  # Reset buffer after processing a message
-            
-            if wait_time is not None and (time.time() - start_time) >= wait_time:
+        This reader is intentionally single-threaded and deadline-bounded (via
+        select) rather than wrapped in a thread-based timeout: abandoning a thread
+        that is blocked mid-read on the stdout pipe leaves a zombie reader that
+        keeps consuming bytes, corrupting message framing for subsequent calls.
+        """
+        # When a specific response/notification is expected (request_id or
+        # expect_method), wait up to a generous floor for it -- the loop returns
+        # the instant it arrives, so the floor only matters when the server is
+        # slow/silent. This preserves the recall of the previous implementation
+        # (whose thread-based 5s timeout let slow responses through) instead of
+        # cutting them off at a small wait_time. Pure collection (message_num /
+        # no criteria) is still bounded by wait_time alone.
+        hard_cap = wait_time if wait_time is not None else 5.0
+        if request_id is not None or expect_method is not None:
+            hard_cap = max(hard_cap, 5.0)
+        deadline = time.time() + hard_cap
+        while True:
+            if time.time() >= deadline:
+                return None
+
+            header = self._read_header(deadline)
+            if header is None:
+                return None  # EOF or deadline reached
+
+            match = re.search(rb"Content-Length:\s*(\d+)", header)
+            if not match:
+                # Header block without a Content-Length (unexpected); skip it.
+                continue
+            content_length = int(match.group(1))
+
+            # Read the body in full. The loop in _read_exact is what prevents the
+            # short-read-then-discard desync that previously corrupted framing.
+            message_bytes = self._read_exact(content_length, deadline)
+            if message_bytes is None:
+                return None  # EOF or deadline before the full body arrived
+
+            message = message_bytes.decode("utf-8", errors="replace")
+            try:
+                json_message = json.loads(message)
+            except json.JSONDecodeError as e:
+                if "Invalid \\uXXXX escape" in str(e):
+                    try:
+                        json_message = json.loads(self._fix_invalid_unicode_escapes(message))
+                        if self.log:
+                            print(f"[WARNING] JSON parsing required Unicode escape fixing at position {e.pos}")
+                    except json.JSONDecodeError as e2:
+                        # Exactly content_length bytes were consumed, so the stream
+                        # stays aligned -- skip this one bad frame instead of
+                        # crashing the whole run.
+                        print(f"[WARNING] Skipping unparseable LSP message (after unicode fix): {e2}")
+                        continue
+                else:
+                    print(f"[WARNING] Skipping unparseable LSP message: {e}")
+                    continue
+
+            if self._is_desired_message(json_message, request_id, expect_method):
                 return None
             if message_num is not None and len(self.messages) >= message_num:
-                return None 
+                return None
     
     def _is_desired_message(self, json_message: Dict, request_id: Optional[int] = None, expect_method: Optional[str] = None) -> bool:
         if request_id is not None: # if request_id is specified, only add the message if it has the same request_id
