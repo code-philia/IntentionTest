@@ -316,7 +316,7 @@ def main():
     args = parser.parse_args()
     
     # Initialize configs
-    configs = Configs(args.project_name, 'gpt-o1-mini')
+    configs = Configs(args.project_name, 'gpt-5-mini')
     
     # Define paths
     source_repo_path = f'{configs.project_dir}/{args.project_name}'

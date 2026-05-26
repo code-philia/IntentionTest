@@ -241,7 +241,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    configs = Configs(args.project_name, 'gpt-o1-mini')
+    configs = Configs(args.project_name, 'gpt-5-mini')
 
     print(f'Configs:\n{configs.__dict__}\n\n')
     print(f"Processing {configs.project_name}...\n\n")
