@@ -189,7 +189,6 @@ class GraphExplorer:
         impl_file_path, impl_start_line = self.extract_file_path_start_line_from_lsp_msg(message)
         if impl_file_path is None:
             self.fail_collect_fact_records.add(invoc_node[1])
-            print(f"[WARNING] Failed to get the implementation of the invocation node\nFile Path: {file_path}\nNode: {invoc_node}\n\n")
             return None, None, None, None, None
         
         # Get the signature and body of the implementation.
@@ -212,7 +211,6 @@ class GraphExplorer:
         def_file_path, def_start_line = self.extract_file_path_start_line_from_lsp_msg(message)
         if def_file_path is None:
             self.fail_collect_fact_records.add(field_node[1])
-            print(f"[WARNING] Failed to get the definition of the field access node\nFile Path: {file_path}\nNode: {field_node}\n\n")
             return None
         
         # get all the public field definitions in the def_file
@@ -234,7 +232,6 @@ class GraphExplorer:
         impl_file_path, _ = self.extract_file_path_start_line_from_lsp_msg(message)
         if impl_file_path is None:
             self.fail_collect_fact_records.add(param_node[1])
-            print(f"[WARNING] Failed to get the implementation of the parameter node\nFile Path: {file_path}\nNode: {param_node}\n\n")
             return []
         
         # Get all constructors' definition and implementation.
@@ -264,7 +261,6 @@ class GraphExplorer:
         impl_file_path, impl_start_line = self.extract_file_path_start_line_from_lsp_msg(message)
         if impl_file_path is None:
             self.fail_collect_fact_records.add(return_type_node[1])
-            print(f"[WARNING] Failed to get the implementation of the return type node\nFile Path: {file_path}\nNode: {return_type_node}\n\n")
             return None, None
         
         self.java_code_parser.parse_java_file(impl_file_path)
