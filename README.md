@@ -153,11 +153,13 @@ Common problems and solutions are documented in [FAQ.md](FAQ.md).
 If you find this repository useful, please cite our paper:
 
 ```bibtex
-@article{qi2026generating,
-  title={Generating Project-Specific Test Cases with Requirement Validation Intention},
-  author={Qi, Binhang and Lin, Yun and Weng, Xinyi and Huang, Yuhuan and Liu, Chenyan and Sun, Hailong and Jin, Zhi and Dong, Jin Song},
-  journal={Proceedings of the ACM on Software Engineering},
-  number={ISSTA},
-  year={2026}
+@misc{qi2026generatingprojectspecifictestcases,
+      title={Generating Project-Specific Test Cases with Requirement Validation Intention}, 
+      author={Binhang Qi and Yun Lin and Xinyi Weng and Yuhuan Huang and Chenyan Liu and Hailong Sun and Zhi Jin and Jin Song Dong},
+      year={2026},
+      eprint={2507.20619},
+      archivePrefix={arXiv},
+      primaryClass={cs.SE},
+      url={https://arxiv.org/abs/2507.20619}, 
 }
 ```
